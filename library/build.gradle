@@ -1,0 +1,30 @@
+apply plugin: 'com.android.library'
+
+def sdkVersion = 28
+
+def majorVersion = 0
+def minorVersion = 0
+def codeVersion = 1
+
+android {
+    compileSdkVersion sdkVersion
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion sdkVersion
+        versionCode codeVersion
+        versionName majorVersion + "." + minorVersion + "." + codeVersion
+        consumerProguardFiles 'proguard-apkvalidator.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+}
+
+dependencies {
+    implementation 'com.github.ichurkin:apksig-android:1.0.0'
+}
