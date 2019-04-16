@@ -64,11 +64,11 @@ public abstract class ApkValidator {
 
     protected abstract String getTag();
 
-    protected abstract String getApkPackage();
+    protected abstract String getApkPackage(Context context);
 
-    protected abstract String getKeyHash();
+    protected abstract String getKeyHash(Context context);
 
-    protected abstract String getSupportEmail();
+    protected abstract String getSupportEmail(Context context);
 
     protected String getString(Context context, String resourceName) {
         //library resources are merged into app context
@@ -191,7 +191,7 @@ public abstract class ApkValidator {
             //verification  is here
             File apkFile = new File(context.getApplicationContext().getPackageCodePath());
             if (!checkFileCert(pmCertThumb, apkFile)) return false;
-            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(), 0);
+            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
             File apkFile2 = new File(ai.sourceDir);
             if (!apkFile2.equals(apkFile)) {
                 log("apkFile and apkFile2 are different!");
@@ -230,7 +230,7 @@ public abstract class ApkValidator {
                             new ByteArrayInputStream(signature.toByteArray()));
                     final String thumbPrint = getThumbPrint(c);
                     log("Cer/sig processing... " + thumbPrint);
-                    if (getKeyHash().equals(thumbPrint)) {
+                    if (getKeyHash(context).equals(thumbPrint)) {
                         log("Cer/sig found");
                         return c;
                     }
@@ -360,7 +360,7 @@ public abstract class ApkValidator {
                                     Build.MODEL, Build.DEVICE,
                                     Build.VERSION.RELEASE, versionName);
 
-                            sendEmailSimple(activity, getSupportEmail(), title, body);
+                            sendEmailSimple(activity, getSupportEmail(activity), title, body);
                             dialog.dismiss();
                             activity.finish();
                         }
