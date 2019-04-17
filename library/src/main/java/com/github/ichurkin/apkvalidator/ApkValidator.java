@@ -64,11 +64,13 @@ public abstract class ApkValidator {
 
     protected abstract String getTag();
 
-    protected abstract String getApkPackage(Context context);
-
     protected abstract String getKeyHash(Context context);
 
     protected abstract String getSupportEmail(Context context);
+
+    protected String getApkPackage(Context context) {
+        return context.getPackageName();
+    }
 
     protected String getString(Context context, String resourceName) {
         //library resources are merged into app context
