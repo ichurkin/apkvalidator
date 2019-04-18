@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ic_integrity_broken_title">Приложение повреждено</string>
+    <string name="ic_integrity_broken_text">Приложение повреждено и не может быть корректно запущено. Пожалуйста, переустановите его.</string>
+    <string name="ic_integrity_emulator_title">Андроид эмулятор</string>
+    <string name="ic_integrity_emulator_text">Приложение не может быть запущено в эмуляторе или в дебаг режиме.</string>
+    <string name="ic_button_goto_store">Переустановить</string>
+    <string name="ic_button_connect_support">Поддержка</string>
+    <string name="ic_no_email_client_found">Почтовый клиент не найден.</string>
+    <string name="ic_close">Закрыть</string>
+</resources>

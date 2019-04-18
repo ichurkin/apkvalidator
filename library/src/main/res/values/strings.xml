@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ic_integrity_broken_title">Application integrity validation failed</string>
+    <string name="ic_integrity_broken_title_email" translatable="false">Integrity validation failed</string>
+    <string name="ic_integrity_broken_text">Application installation is damaged, please download it from the legal source or connect to support.</string>
+    <string name="ic_integrity_emulator_title">Emulator detected</string>
+    <string name="ic_integrity_emulator_text">Application cannot be debugged or run on emulator.</string>
+    <string name="ic_button_goto_store">Reinstall</string>
+    <string name="ic_button_connect_support">Support</string>
+    <string name="ic_no_email_client_found">No email client found.</string>
+    <string name="ic_close">Close</string>
+</resources>
