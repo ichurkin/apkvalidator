@@ -4,6 +4,7 @@
  */
 package com.github.ichurkin.apkvalidator;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
@@ -20,6 +21,8 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -28,6 +31,7 @@ import android.widget.Toast;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -103,7 +107,7 @@ public abstract class ApkValidator {
         } catch (UnsupportedEncodingException e) {
             Toast.makeText(activity, "Unsupported encoding", Toast.LENGTH_SHORT).show();
         } finally {
-            System.exit(1);
+            exit();
         }
     }
 
@@ -116,7 +120,7 @@ public abstract class ApkValidator {
         //TODO: sync and lock
         if (sCheckedTime + DateUtils.HOUR_IN_MILLIS < now) {
             Log.i(getTag(), "+");
-            IntegrityChecker integrityChecker = new IntegrityChecker(context);
+            IntegrityChecker integrityChecker = new IntegrityChecker(context, ApkValidator.this);
             integrityChecker.execute();
         } else {
             log("-");
@@ -177,8 +181,22 @@ public abstract class ApkValidator {
                         getString(a, BUTTON_GOTO_STORE));
             }
         } else {
-            System.exit(1);
+            //exit with delay
+            exit();
         }
+    }
+
+    protected void exit() {
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                immediateExit();
+            }
+        }, 500);
+    }
+
+    private void immediateExit() {
+        System.exit(1);
     }
 
     protected boolean isSignatureOk(final Context context) {
@@ -197,7 +215,7 @@ public abstract class ApkValidator {
             File apkFile2 = new File(ai.sourceDir);
             if (!apkFile2.equals(apkFile)) {
                 log("apkFile and apkFile2 are different!");
-                if (!checkFileCert(pmCertThumb, apkFile2)) return false;
+                return checkFileCert(pmCertThumb, apkFile2);
             }
             return true;
         } catch (Throwable e) {
@@ -220,7 +238,7 @@ public abstract class ApkValidator {
     protected X509Certificate findCertificateByPackageManager(final Context context) {
         log("finding certificate...");
         try {
-            final Signature[] signatures = context.getPackageManager().getPackageInfo(context.getPackageName(),
+            @SuppressLint("PackageManagerGetSignatures") final Signature[] signatures = context.getPackageManager().getPackageInfo(context.getPackageName(),
                     PackageManager.GET_SIGNATURES).signatures;
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
 
@@ -349,13 +367,13 @@ public abstract class ApkValidator {
                         @Override
                         public void onClick(final DialogInterface dialog, final int which) {
 
-                            String versionName = "Unknown";
+                            String versionName;
                             try {
                                 final PackageInfo info = activity.getPackageManager().getPackageInfo(
                                         activity.getPackageName(), 0);
                                 versionName = info.versionName;
                             } catch (final NameNotFoundException ex) {
-
+                                versionName = "Unknown";
                             }
 
                             final String body = String.format("Model:%s,\nDevice:%s,\nSDK: %s\nApp: %s\n",
@@ -387,18 +405,18 @@ public abstract class ApkValidator {
             builder.setNegativeButton(getString(activity, CLOSE), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    System.exit(1);
+                    immediateExit();
 
                 }
             }).setOnCancelListener(new DialogInterface.OnCancelListener() {
                 @Override
                 public void onCancel(DialogInterface dialog) {
-                    System.exit(1);
+                    immediateExit();
                 }
             }).setOnKeyListener(new DialogInterface.OnKeyListener() {
                 @Override
                 public boolean onKey(final DialogInterface dialog, final int i, final KeyEvent keyEvent) {
-                    System.exit(1);
+                    immediateExit();
                     return false;
                 }
             });
@@ -430,7 +448,7 @@ public abstract class ApkValidator {
         } catch (final Throwable e) {
             startExternalActivity(activity, getExternalMarketUrl());
         } finally {
-            System.exit(1);
+            exit();
         }
     }
 
@@ -479,38 +497,13 @@ public abstract class ApkValidator {
         Log.e(getTag(), msg);
     }
 
-    protected final class IntegrityChecker extends AsyncTask<Void, Void, Boolean> {
-
-        protected final Context _context;
-
-        public IntegrityChecker(final Context context) {
-            _context = context;
-        }
-
-        @Override
-        protected Boolean doInBackground(final Void... params) {
-            log("doInBackground....");
-            try {
-                final long someTime = new Random().nextInt(10000);
-                Thread.sleep(someTime);
-            } catch (final InterruptedException e) {
-                // nothing
-            }
-            log("validating....");
-            try {
-                validate(_context);
-                return true;
-            } catch (final Throwable e) {
-                log(e.getMessage());
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            if (!result) {
-                exit(_context);
-            }
+    protected void onBeforeValidation() {
+        //random pause
+        try {
+            final long someTime = new Random().nextInt(10000);
+            Thread.sleep(someTime);
+        } catch (final InterruptedException e) {
+            // nothing
         }
     }
 
@@ -522,9 +515,9 @@ public abstract class ApkValidator {
 
     }
 
-    protected static String hexify(final byte bytes[]) {
+    protected static String hexify(final byte[] bytes) {
         final char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-        final StringBuffer buf = new StringBuffer(bytes.length * 2);
+        final StringBuilder buf = new StringBuilder(bytes.length * 2);
 
         for (int i = 0; i < bytes.length; ++i) {
             buf.append(hexDigits[(bytes[i] & 0xf0) >> 4]);
@@ -533,10 +526,52 @@ public abstract class ApkValidator {
         return buf.toString();
     }
 
+    private static final class IntegrityChecker extends AsyncTask<Void, Void, Boolean> {
+
+        private final WeakReference<Context> _contextRef;
+
+        private final ApkValidator _validator;
+
+        IntegrityChecker(final Context context, ApkValidator validator) {
+            _contextRef = new WeakReference<>(context);
+            _validator = validator;
+        }
+
+        @Override
+        protected Boolean doInBackground(final Void... params) {
+            _validator.log("doInBackground....");
+            _validator.onBeforeValidation();
+            _validator.log("validating....");
+            try {
+                final Context context = _contextRef.get();
+                if (context != null) {
+                    _validator.validate(context);
+                    return true;
+                }
+                return false;
+            } catch (final Throwable e) {
+                _validator.log(e.getMessage());
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (!result) {
+                final Context context = _contextRef.get();
+                if (context != null) {
+                    _validator.exit(context);
+                } else {
+                    _validator.exit();
+                }
+            }
+        }
+    }
+
     /**
      * Make it public to be cached by the classloader while loading main class
      */
-    public static Class<?> classes[] = new Class<?>[]{
+    public static Class<?>[] classes = new Class<?>[]{
             IntegrityChecker.class,//
             com.android.apksig.apk.ApkFormatException.class,//
             com.android.apksig.apk.ApkSigningBlockNotFoundException.class,//
