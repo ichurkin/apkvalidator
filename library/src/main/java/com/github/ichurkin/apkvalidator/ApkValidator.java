@@ -200,7 +200,10 @@ public abstract class ApkValidator {
     }
 
     protected boolean isSignatureOk(final Context context) {
-        //return false;
+        //do not check signature in debug mode, android studio fails to generate MANIFEST.MF now
+        if (mIsDebugModeAllowed && mIsEmulatorAllowed) {
+            return true;
+        }
         try {
             X509Certificate pmCert = findCertificateByPackageManager(context);
             if (pmCert == null) {
