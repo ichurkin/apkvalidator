@@ -4,7 +4,7 @@ def sdkVersion = 28
 
 def majorVersion = 0
 def minorVersion = 0
-def codeVersion = 5
+def codeVersion = 6
 
 android {
     compileSdkVersion sdkVersion
