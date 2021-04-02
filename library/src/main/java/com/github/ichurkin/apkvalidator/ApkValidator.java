@@ -512,7 +512,7 @@ public abstract class ApkValidator {
 
     protected static String getThumbPrint(final X509Certificate cert) throws NoSuchAlgorithmException,
             CertificateEncodingException {
-        final MessageDigest md = MessageDigest.getInstance("SHA-1");
+        final MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(cert.getEncoded());
         return hexify(md.digest());
 
