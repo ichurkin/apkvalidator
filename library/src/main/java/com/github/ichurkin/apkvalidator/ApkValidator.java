@@ -73,6 +73,10 @@ public abstract class ApkValidator {
 
     protected abstract String getSupportEmail(Context context);
 
+    protected String getApkPackage(Context context) {
+        return context.getPackageName();
+    }
+
     protected String getString(Context context, String resourceName) {
         //library resources are merged into app context
         final Resources r = context.getResources();
@@ -212,6 +216,7 @@ public abstract class ApkValidator {
             File apkFile = new File(context.getApplicationContext().getPackageCodePath());
             if (!checkFileCert(pmCertThumb, apkFile)) return false;
             ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), 0);
+            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
             File apkFile2 = new File(ai.sourceDir);
             if (!apkFile2.equals(apkFile)) {
                 log("apkFile and apkFile2 are different!");
