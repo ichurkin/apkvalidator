@@ -39,7 +39,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -215,7 +214,6 @@ public abstract class ApkValidator {
             //verification  is here
             File apkFile = new File(context.getApplicationContext().getPackageCodePath());
             if (!checkFileCert(pmCertThumb, apkFile)) return false;
-            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), 0);
             ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
             File apkFile2 = new File(ai.sourceDir);
             if (!apkFile2.equals(apkFile)) {
