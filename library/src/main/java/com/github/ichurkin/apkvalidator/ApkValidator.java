@@ -39,6 +39,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -71,10 +72,6 @@ public abstract class ApkValidator {
     protected abstract String getKeyHash(Context context);
 
     protected abstract String getSupportEmail(Context context);
-
-    protected String getApkPackage(Context context) {
-        return context.getPackageName();
-    }
 
     protected String getString(Context context, String resourceName) {
         //library resources are merged into app context
@@ -214,7 +211,7 @@ public abstract class ApkValidator {
             //verification  is here
             File apkFile = new File(context.getApplicationContext().getPackageCodePath());
             if (!checkFileCert(pmCertThumb, apkFile)) return false;
-            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
+            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), 0);
             File apkFile2 = new File(ai.sourceDir);
             if (!apkFile2.equals(apkFile)) {
                 log("apkFile and apkFile2 are different!");
@@ -307,11 +304,18 @@ public abstract class ApkValidator {
     protected boolean isEmulator() {
         try {
             String gfp = System.getProperty("ro.hardware", "");
-            boolean goldfish = gfp.contains("goldfish");
+            if (gfp != null && gfp.contains("goldfish")) {
+                return true;
+            }
+
             String qemu = System.getProperty("ro.kernel.qemu", "");
-            boolean emu = qemu.length() > 0;
+            if (gfp != null && qemu.length() > 0) {
+                return true;
+            }
             String sdkProperty = System.getProperty("ro.product.model", "");
-            boolean sdk = sdkProperty.equals("sdk");
+            if ("sdk".equals(sdkProperty)) {
+                return true;
+            }
 
             String fingerprint = Build.FINGERPRINT.toLowerCase();
             String model = Build.MODEL.toLowerCase();
@@ -319,17 +323,40 @@ public abstract class ApkValidator {
             String brand = Build.BRAND.toLowerCase();
             String device = Build.DEVICE.toLowerCase();
             String product = Build.PRODUCT.toLowerCase();
-            boolean extraCheck = fingerprint.contains("generic")
-                    || fingerprint.startsWith("unknown")
-                    || model.contains("google_sdk")
-                    || model.contains("emulator")
-                    || model.contains("android sdk built for x86")
-                    || manufacturer.contains("genymotion")
-                    || (brand.startsWith("generic") && device.startsWith("generic"))
-                    || "google_sdk".equals(product)
-                    || Build.HARDWARE.contains("goldfish");
+            String board = Build.BOARD.toLowerCase();
+            String hardware = Build.HARDWARE.toLowerCase();
 
-            return (emu || goldfish || sdk || extraCheck);
+            return (
+                    ("google".equals(manufacturer) &&
+                            "google".equals(brand) &&
+                            ((fingerprint.startsWith("google/sdk_gphone_")
+                                    && fingerprint.endsWith(":user/release-keys")
+                                    && product.startsWith("sdk_gphone_")
+                                    && model.startsWith("sdk_gphone_"))
+                                    //alternative
+                                    || (fingerprint.startsWith("google/sdk_gphone64_")
+                                    && (fingerprint.endsWith(":userdebug/dev-keys") || fingerprint.endsWith(":user/release-keys"))
+                                    && product.startsWith("sdk_gphone64_")
+                                    && model.startsWith("sdk_gphone64_")))
+                    ) ||
+                            fingerprint.startsWith("generic") ||
+                            fingerprint.startsWith("unknown") ||
+                            model.contains("google_sdk") ||
+                            model.contains("emulator") ||
+                            model.contains("android sdk built for x86") ||
+                            //bluestacks
+                            board.equals("qc_reference_phone") && !"xiaomi".equals(manufacturer) ||
+                            //bluestacks
+                            manufacturer.contains("genymotion") ||
+                            hardware.contains("goldfish") ||
+                            Build.HOST.startsWith("Build") ||
+                            //MSI App Player
+                            brand.startsWith("generic") && device.startsWith("generic") ||
+                            "google_sdk".equals(product)
+            );
+            // another Android SDK emulator check
+            //|| SystemProperties.getProp("ro.kernel.qemu") == "1");
+
         } catch (Throwable e) {
             error(e);
             return false;
