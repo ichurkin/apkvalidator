@@ -4,7 +4,7 @@ def sdkVersion = 28
 
 def majorVersion = 0
 def minorVersion = 0
-def codeVersion = 7
+def codeVersion = 9
 
 android {
     compileSdkVersion sdkVersion
@@ -17,6 +17,24 @@ android {
         consumerProguardFiles 'proguard-apkvalidator.pro'
     }
 
+    sourceSets {
+        main {
+            java {
+                srcDirs('src/main/java', '../apksig/src/main/java')
+            }
+        }
+    }
+    buildTypes {
+        all {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+
     buildTypes {
         release {
             minifyEnabled false
@@ -26,5 +44,4 @@ android {
 }
 
 dependencies {
-    implementation 'com.github.ichurkin:apksig-android:1.0.0'
 }
