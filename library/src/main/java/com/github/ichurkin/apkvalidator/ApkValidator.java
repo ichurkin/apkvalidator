@@ -27,14 +27,11 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
@@ -42,8 +39,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Random;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 
 public abstract class ApkValidator {
 
@@ -210,13 +205,30 @@ public abstract class ApkValidator {
             String pmCertThumb = getThumbPrint(pmCert);
             log(context, "pmCertThumb:" + pmCertThumb);
             //verification  is here
-            File apkFile = new File(context.getApplicationContext().getPackageCodePath());
-            if (!checkFileCert(context, pmCertThumb, apkFile)) return false;
-            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
-            File apkFile2 = new File(ai.publicSourceDir);
-            if (!apkFile2.equals(apkFile)) {
+            final String apkPath = context.getApplicationContext().getPackageCodePath();
+            final String apkPath2 = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0).publicSourceDir;
+            boolean different = apkPath2 != null && !apkPath2.equals(apkPath);
+            final int versionCode = getVersionCode(context);
+            if (versionCode != getApkVersionCode(context, apkPath)) {
+                info(context, "v1");
+                return false;
+            }
+            if (different && versionCode != getApkVersionCode(context, apkPath2)) {
+                info(context, "v2");
+                return false;
+            }
+            File apkFile = new File(apkPath);
+            if (!checkFileCert(context, pmCertThumb, apkFile)) {
+                info(context, "s1");
+                return false;
+            }
+            if (different) {
+                File apkFile2 = new File(apkPath2);
                 log(context, "apkFile and apkFile2 are different!");
-                return checkFileCert(context, pmCertThumb, apkFile2);
+                if (!checkFileCert(context, pmCertThumb, apkFile2)) {
+                    info(context, "s2");
+                    return false;
+                }
             }
             return true;
         } catch (Throwable e) {
@@ -231,29 +243,9 @@ public abstract class ApkValidator {
         return info.versionCode != getVersionCode();
     }
 
-    private int getApkVersionCode(Context context, String path) {
-        try {
-            if ((new File(path).exists())) {
-                JarFile jf = new JarFile(path);
-                final ZipEntry entry = jf.getEntry("META-INF/androidx.code.version");
-                if (entry != null) {
-                    InputStream is = jf.getInputStream(entry);
-                    //read to byte array
-                    byte[] bytes = new byte[is.available()];
-                    DataInputStream dis = new DataInputStream(is);
-                    dis.readFully(bytes);
-                    dis.close();
-                    String versionString = new String(bytes, StandardCharsets.UTF_8);
-                    return Integer.parseUnsignedInt(versionString);
-                }
-            }
-        } catch (Exception ex) {
-            error(context, "cv is not found");
-        }
-        return -1;
-    }
+    protected abstract int getVersionCode(Context context);
 
-    protected abstract int getVersionCode();
+    protected abstract int getApkVersionCode(Context context, String path);
 
     protected boolean checkFileCert(Context context, String pmCertThumb, File apkFile) throws NoSuchAlgorithmException, CertificateEncodingException {
         X509Certificate apkCert = findCertificateByFile(context, apkFile);
