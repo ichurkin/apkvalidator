@@ -2,18 +2,15 @@ apply plugin: 'com.android.library'
 
 def sdkVersion = 28
 
-def majorVersion = 0
-def minorVersion = 0
-def codeVersion = 9
-
 android {
-    compileSdkVersion sdkVersion
+    namespace 'com.github.ichurkin.apkvalidator'
+    buildToolsVersion = "34.0.0"
+
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 19
         targetSdkVersion sdkVersion
-        versionCode codeVersion
-        versionName majorVersion + "." + minorVersion + "." + codeVersion
+        compileSdk sdkVersion
         consumerProguardFiles 'proguard-apkvalidator.pro'
     }
 
@@ -25,7 +22,7 @@ android {
         }
     }
     buildTypes {
-        all {
+        configureEach {
             minifyEnabled false
         }
     }
@@ -33,14 +30,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-
-
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
-
 }
 
 dependencies {

@@ -11,3 +11,13 @@
 -keepclassmembers public class com.android.apksig.** {
     public *;
 }
+
+#-keepclassmembers class com.android.apksig.** {
+#    *;
+#}
+
+#-keep class com.android.apksig.**
+#-keepclassmembers class com.android.apksig.** {
+#    *;
+#}
+
