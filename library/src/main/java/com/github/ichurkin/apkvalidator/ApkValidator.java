@@ -10,7 +10,6 @@ import android.app.AlertDialog;
 import android.app.Application;
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -25,7 +24,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.format.DateUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
@@ -47,7 +45,6 @@ import java.util.Random;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
-@SuppressWarnings("deprecation")
 public abstract class ApkValidator {
 
     private static final String NO_EMAIL_CLIENT_FOUND = "ic_no_email_client_found";
@@ -137,7 +134,7 @@ public abstract class ApkValidator {
 
         if (!mIsEmulatorAllowed) {
             log(context, "call emulator check");
-            if (isEmulator()) {
+            if (isEmulator(context)) {
                 //emulator
                 log(context, "emulator, exiting");
                 exit(context, true);
@@ -192,12 +189,7 @@ public abstract class ApkValidator {
     }
 
     protected void exit() {
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                immediateExit();
-            }
-        }, 500);
+        new Handler(Looper.getMainLooper()).postDelayed(this::immediateExit, 500);
     }
 
     private void immediateExit() {
@@ -219,12 +211,12 @@ public abstract class ApkValidator {
             log(context, "pmCertThumb:" + pmCertThumb);
             //verification  is here
             File apkFile = new File(context.getApplicationContext().getPackageCodePath());
-            if (!checkFileCert(pmCertThumb, apkFile)) return false;
+            if (!checkFileCert(context, pmCertThumb, apkFile)) return false;
             ApplicationInfo ai = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0);
             File apkFile2 = new File(ai.publicSourceDir);
             if (!apkFile2.equals(apkFile)) {
                 log(context, "apkFile and apkFile2 are different!");
-                return checkFileCert(pmCertThumb, apkFile2);
+                return checkFileCert(context, pmCertThumb, apkFile2);
             }
             return true;
         } catch (Throwable e) {
@@ -239,7 +231,7 @@ public abstract class ApkValidator {
         return info.versionCode != getVersionCode();
     }
 
-    private int getApkVersionCode(String path) {
+    private int getApkVersionCode(Context context, String path) {
         try {
             if ((new File(path).exists())) {
                 JarFile jf = new JarFile(path);
@@ -263,8 +255,8 @@ public abstract class ApkValidator {
 
     protected abstract int getVersionCode();
 
-    protected boolean checkFileCert(String pmCertThumb, File apkFile) throws NoSuchAlgorithmException, CertificateEncodingException {
-        X509Certificate apkCert = findCertificateByFile(apkFile);
+    protected boolean checkFileCert(Context context, String pmCertThumb, File apkFile) throws NoSuchAlgorithmException, CertificateEncodingException {
+        X509Certificate apkCert = findCertificateByFile(context, apkFile);
         if (apkCert == null) {
             return false;
         }
@@ -307,7 +299,7 @@ public abstract class ApkValidator {
         return null;
     }
 
-    protected X509Certificate findCertificateByFile(final File file) {
+    protected X509Certificate findCertificateByFile(Context context, File file) {
         log(context, "findCertificateByFile file=" + file.getAbsolutePath());
         try {
             com.android.apksig.ApkVerifier.Builder builder = new com.android.apksig.ApkVerifier.Builder(file);
@@ -334,20 +326,20 @@ public abstract class ApkValidator {
             List<X509Certificate> signerCertificates = result.getSignerCertificates();
             return signerCertificates.get(0);
         } catch (Throwable e) {
-            error(e, context);
+            error(context, e);
         }
         return null;
     }
 
     //TODO: look at the https://github.com/framgia/android-emulator-detector
-    protected boolean isEmulator() {
+    protected boolean isEmulator(Context context) {
         try {
             String gfp = System.getProperty("ro.hardware", "");
-            boolean goldfish = gfp.contains("goldfish");
+            boolean goldfish = gfp != null && gfp.contains("goldfish");
             String qemu = System.getProperty("ro.kernel.qemu", "");
-            boolean emu = qemu.length() > 0;
+            boolean emu = qemu != null && qemu.length() > 0;
             String sdkProperty = System.getProperty("ro.product.model", "");
-            boolean sdk = sdkProperty.equals("sdk");
+            boolean sdk = "sdk".equals(sdkProperty);
 
             String fingerprint = Build.FINGERPRINT.toLowerCase();
             String model = Build.MODEL.toLowerCase();
@@ -367,7 +359,7 @@ public abstract class ApkValidator {
 
             return (emu || goldfish || sdk || extraCheck);
         } catch (Throwable e) {
-            error(e, context);
+            error(context, e);
             return false;
         }
     }
@@ -401,76 +393,41 @@ public abstract class ApkValidator {
                 .setCancelable(true);
         if (marketTitle != null) {
             builder.setNeutralButton(getString(activity, BUTTON_CONNECT_SUPPORT),
-                    new DialogInterface.OnClickListener() {
+                            (dialog, which) -> {
+                                String versionName;
+                                try {
+                                    final PackageInfo info = activity.getPackageManager().getPackageInfo(
+                                            activity.getPackageName(), 0);
+                                    versionName = info.versionName;
+                                } catch (final NameNotFoundException ex) {
+                                    versionName = "Unknown";
+                                }
 
-                        @Override
-                        public void onClick(final DialogInterface dialog, final int which) {
+                                final String body = String.format("Model:%s,\nDevice:%s,\nSDK: %s\nApp: %s\n",
+                                        Build.MODEL, Build.DEVICE,
+                                        Build.VERSION.RELEASE, versionName);
 
-                            String versionName;
-                            try {
-                                final PackageInfo info = activity.getPackageManager().getPackageInfo(
-                                        activity.getPackageName(), 0);
-                                versionName = info.versionName;
-                            } catch (final NameNotFoundException ex) {
-                                versionName = "Unknown";
-                            }
-
-                            final String body = String.format("Model:%s,\nDevice:%s,\nSDK: %s\nApp: %s\n",
-                                    Build.MODEL, Build.DEVICE,
-                                    Build.VERSION.RELEASE, versionName);
-
-                            sendEmailSimple(activity, getSupportEmail(activity), title, body);
-                            dialog.dismiss();
-                            activity.finish();
-                        }
-                    }).setPositiveButton(marketTitle, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(final DialogInterface dialog, final int which) {
-                    startMarketActivity(activity);
-                }
-            }).setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    startMarketActivity(activity);
-                }
-            }).setOnKeyListener(new DialogInterface.OnKeyListener() {
-                @Override
-                public boolean onKey(final DialogInterface dialog, final int i, final KeyEvent keyEvent) {
-                    startMarketActivity(activity);
-                    return false;
-                }
-            });
+                                sendEmailSimple(activity, getSupportEmail(activity), title, body);
+                                dialog.dismiss();
+                                activity.finish();
+                            }).setPositiveButton(marketTitle, (dialog, which) -> startMarketActivity(activity))
+                    .setOnCancelListener(dialog -> startMarketActivity(activity))
+                    .setOnKeyListener((dialog, i, keyEvent) -> {
+                        startMarketActivity(activity);
+                        return false;
+                    });
         } else {
-            builder.setNegativeButton(getString(activity, CLOSE), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    immediateExit();
-
-                }
-            }).setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    immediateExit();
-                }
-            }).setOnKeyListener(new DialogInterface.OnKeyListener() {
-                @Override
-                public boolean onKey(final DialogInterface dialog, final int i, final KeyEvent keyEvent) {
-                    immediateExit();
-                    return false;
-                }
-            });
+            builder.setNegativeButton(getString(activity, CLOSE), (dialog, which) -> immediateExit())
+                    .setOnCancelListener(dialog -> immediateExit())
+                    .setOnKeyListener((dialog, i, keyEvent) -> {
+                        immediateExit();
+                        return false;
+                    });
 
 
         }
         // starting in UI thread
-        activity.runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() {
-                builder.show();
-            }
-        });
-
+        activity.runOnUiThread(builder::show);
     }
 
     protected String getInternalMarketUrl() {
@@ -562,9 +519,9 @@ public abstract class ApkValidator {
         final char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         final StringBuilder buf = new StringBuilder(bytes.length * 2);
 
-        for (int i = 0; i < bytes.length; ++i) {
-            buf.append(hexDigits[(bytes[i] & 0xf0) >> 4]);
-            buf.append(hexDigits[bytes[i] & 0x0f]);
+        for (byte aByte : bytes) {
+            buf.append(hexDigits[(aByte & 0xf0) >> 4]);
+            buf.append(hexDigits[aByte & 0x0f]);
         }
         return buf.toString();
     }
@@ -582,11 +539,11 @@ public abstract class ApkValidator {
 
         @Override
         protected Boolean doInBackground(final Void... params) {
+            final Context context = _contextRef.get();
             _validator.log(context, "doInBackground....");
             _validator.onBeforeValidation();
             _validator.log(context, "validating....");
             try {
-                final Context context = _contextRef.get();
                 if (context != null) {
                     _validator.validate(context);
                     return true;
