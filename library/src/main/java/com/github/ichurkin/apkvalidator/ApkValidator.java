@@ -574,122 +574,146 @@ public abstract class ApkValidator {
     public static Class<?>[] classes = new Class<?>[]{
             IntegrityChecker.class,//
 
-            com.android.apksig.DefaultApkSignerEngine.class, //
-            com.android.apksig.apk.ApkFormatException.class, //
-            com.android.apksig.apk.CodenameMinSdkVersionException.class, //
-            com.android.apksig.apk.ApkSigningBlockNotFoundException.class, //
-            com.android.apksig.apk.ApkUtils.class, //
-            com.android.apksig.apk.ApkUtilsLite.class, //
-            com.android.apksig.apk.MinSdkVersionException.class, //
-            com.android.apksig.util.DataSink.class, //
-            com.android.apksig.util.ReadableDataSink.class, //
-            com.android.apksig.util.DataSources.class, //
-            com.android.apksig.util.RunnablesProvider.class, //
-            com.android.apksig.util.RunnablesExecutor.class, //
-            com.android.apksig.util.DataSinks.class, //
-            com.android.apksig.util.DataSource.class, //
-            com.android.apksig.Hints.class, //
-            com.android.apksig.ApkSignerEngine.class, //
-            com.android.apksig.internal.asn1.Asn1EncodingException.class, //
-            com.android.apksig.internal.asn1.Asn1DecodingException.class, //
-            com.android.apksig.internal.asn1.Asn1TagClass.class, //
-            com.android.apksig.internal.asn1.Asn1OpaqueObject.class, //
-            com.android.apksig.internal.asn1.Asn1DerEncoder.class, //
-            com.android.apksig.internal.asn1.Asn1Tagging.class, //
-            com.android.apksig.internal.asn1.Asn1Field.class, //
-            com.android.apksig.internal.asn1.Asn1Type.class, //
-            com.android.apksig.internal.asn1.Asn1BerParser.class, //
-            com.android.apksig.internal.asn1.ber.ByteBufferBerDataValueReader.class, //
-            com.android.apksig.internal.asn1.ber.BerDataValueFormatException.class, //
-            com.android.apksig.internal.asn1.ber.BerEncoding.class, //
-            com.android.apksig.internal.asn1.ber.InputStreamBerDataValueReader.class, //
-            com.android.apksig.internal.asn1.ber.BerDataValue.class, //
-            com.android.apksig.internal.asn1.ber.BerDataValueReader.class, //
-            com.android.apksig.internal.asn1.Asn1Class.class, //
-            com.android.apksig.internal.apk.v1.V1SchemeSigner.class, //
-            com.android.apksig.internal.apk.v1.V1SchemeConstants.class, //
-            com.android.apksig.internal.apk.v1.DigestAlgorithm.class, //
-            com.android.apksig.internal.apk.v1.V1SchemeVerifier.class, //
-            com.android.apksig.internal.apk.SignatureNotFoundException.class, //
-            com.android.apksig.internal.apk.ApkSigningBlockUtilsLite.class, //
-            com.android.apksig.internal.apk.SignatureAlgorithm.class, //
-            com.android.apksig.internal.apk.ApkSigningBlockUtils.class, //
-            com.android.apksig.internal.apk.ApkSupportedSignature.class, //
-            com.android.apksig.internal.apk.ContentDigestAlgorithm.class, //
-            com.android.apksig.internal.apk.AndroidBinXmlParser.class, //
-            com.android.apksig.internal.apk.SignatureInfo.class, //
-            com.android.apksig.internal.apk.v2.V2SchemeConstants.class, //
-            com.android.apksig.internal.apk.v2.V2SchemeVerifier.class, //
-            com.android.apksig.internal.apk.v2.V2SchemeSigner.class, //
-            com.android.apksig.internal.apk.v4.V4SchemeSigner.class, //
-            com.android.apksig.internal.apk.v4.V4SchemeVerifier.class, //
-            com.android.apksig.internal.apk.v4.V4Signature.class, //
-            com.android.apksig.internal.apk.v3.V3SchemeVerifier.class, //
-            com.android.apksig.internal.apk.v3.V3SchemeConstants.class, //
-            com.android.apksig.internal.apk.v3.V3SchemeSigner.class, //
-            com.android.apksig.internal.apk.v3.V3SigningCertificateLineage.class, //
-            com.android.apksig.internal.apk.NoApkSupportedSignaturesException.class, //
-            com.android.apksig.internal.apk.stamp.SourceStampConstants.class, //
-            com.android.apksig.internal.apk.stamp.V1SourceStampSigner.class, //
-            com.android.apksig.internal.apk.stamp.SourceStampCertificateLineage.class, //
-            com.android.apksig.internal.apk.stamp.V2SourceStampVerifier.class, //
-            com.android.apksig.internal.apk.stamp.V2SourceStampSigner.class, //
-            com.android.apksig.internal.apk.stamp.V1SourceStampVerifier.class, //
-            com.android.apksig.internal.apk.ApkSignerInfo.class, //
-            com.android.apksig.internal.apk.ApkSigResult.class, //
-            com.android.apksig.internal.util.ByteBufferUtils.class, //
-            com.android.apksig.internal.util.DelegatingX509Certificate.class, //
-            com.android.apksig.internal.util.GuaranteedEncodedFormX509Certificate.class, //
-            com.android.apksig.internal.util.X509CertificateUtils.class, //
-            com.android.apksig.internal.util.OutputStreamDataSink.class, //
-            com.android.apksig.internal.util.Pair.class, //
-            com.android.apksig.internal.util.VerityTreeBuilder.class, //
-            com.android.apksig.internal.util.ByteBufferSink.class, //
-            com.android.apksig.internal.util.ByteBufferDataSource.class, //
-            com.android.apksig.internal.util.InclusiveIntRange.class, //
-            com.android.apksig.internal.util.ChainedDataSource.class, //
-            com.android.apksig.internal.util.ByteStreams.class, //
-            com.android.apksig.internal.util.MessageDigestSink.class, //
-            com.android.apksig.internal.util.RandomAccessFileDataSink.class, //
-            com.android.apksig.internal.util.FileChannelDataSource.class, //
-            com.android.apksig.internal.util.AndroidSdkVersion.class, //
-            com.android.apksig.internal.util.TeeDataSink.class, //
-            com.android.apksig.internal.util.ByteArrayDataSink.class, //
-            com.android.apksig.internal.jar.SignatureFileWriter.class, //
-            com.android.apksig.internal.jar.ManifestWriter.class, //
-            com.android.apksig.internal.jar.ManifestParser.class, //
-            com.android.apksig.internal.x509.RelativeDistinguishedName.class, //
-            com.android.apksig.internal.x509.Extension.class, //
-            com.android.apksig.internal.x509.RSAPublicKey.class, //
-            com.android.apksig.internal.x509.Time.class, //
-            com.android.apksig.internal.x509.Certificate.class, //
-            com.android.apksig.internal.x509.TBSCertificate.class, //
-            com.android.apksig.internal.x509.Validity.class, //
-            com.android.apksig.internal.x509.Name.class, //
-            com.android.apksig.internal.x509.AttributeTypeAndValue.class, //
-            com.android.apksig.internal.x509.SubjectPublicKeyInfo.class, //
-            com.android.apksig.internal.zip.CentralDirectoryRecord.class, //
-            com.android.apksig.internal.zip.EocdRecord.class, //
-            com.android.apksig.internal.zip.ZipUtils.class, //
-            com.android.apksig.internal.zip.LocalFileRecord.class, //
-            com.android.apksig.internal.pkcs7.Pkcs7Constants.class, //
-            com.android.apksig.internal.pkcs7.ContentInfo.class, //
-            com.android.apksig.internal.pkcs7.SignedData.class, //
-            com.android.apksig.internal.pkcs7.IssuerAndSerialNumber.class, //
-            com.android.apksig.internal.pkcs7.EncapsulatedContentInfo.class, //
-            com.android.apksig.internal.pkcs7.Attribute.class, //
-            com.android.apksig.internal.pkcs7.SignerInfo.class, //
-            com.android.apksig.internal.pkcs7.AlgorithmIdentifier.class, //
-            com.android.apksig.internal.pkcs7.SignerIdentifier.class, //
-            com.android.apksig.internal.pkcs7.Pkcs7DecodingException.class, //
-            com.android.apksig.internal.oid.OidConstants.class, //
-            com.android.apksig.ApkVerificationIssue.class, //
-            com.android.apksig.SigningCertificateLineage.class, //
-            com.android.apksig.zip.ZipSections.class, //
-            com.android.apksig.zip.ZipFormatException.class, //
-            com.android.apksig.ApkVerifier.class, //
-            com.android.apksig.SourceStampVerifier.class, //
-            com.android.apksig.ApkSigner.class, //
-            com.android.apksig.Constants.class
+            com.android.apksig.apk.ApkFormatException.class,//
+            com.android.apksig.apk.ApkSigningBlockNotFoundException.class,//
+            com.android.apksig.apk.ApkUtils.class,//
+            com.android.apksig.apk.ApkUtils.ApkSigningBlock.class,//
+            com.android.apksig.apk.ApkUtils.ZipSections.class,//
+            //
+            com.android.apksig.apk.CodenameMinSdkVersionException.class,//
+            com.android.apksig.apk.MinSdkVersionException.class,//
+            com.android.apksig.ApkSigner.class,//
+            com.android.apksig.ApkSigner.Builder.class,//
+            com.android.apksig.ApkSigner.SignerConfig.class,//
+            //
+            com.android.apksig.ApkSignerEngine.class,//
+            com.android.apksig.ApkSignerEngine.InputJarEntryInstructions.class,//
+            com.android.apksig.ApkSignerEngine.InspectJarEntryRequest.class,//
+            com.android.apksig.ApkSignerEngine.OutputApkSigningBlockRequest.class,//
+            com.android.apksig.ApkSignerEngine.OutputApkSigningBlockRequest2.class,//
+            com.android.apksig.ApkSignerEngine.OutputJarSignatureRequest.class,//
+            //
+            com.android.apksig.ApkVerifier.class,//
+            com.android.apksig.ApkVerifier.Result.class,//
+            com.android.apksig.ApkVerifier.Builder.class,//
+            com.android.apksig.ApkVerifier.Issue.class,//
+            com.android.apksig.ApkVerifier.IssueWithParams.class,//
+            //
+            com.android.apksig.DefaultApkSignerEngine.OutputJarSignatureRequest.class,//
+            com.android.apksig.DefaultApkSignerEngine.OutputApkSigningBlockRequest.class,//
+            com.android.apksig.DefaultApkSignerEngine.OutputApkSigningBlockRequest2.class,//
+            com.android.apksig.DefaultApkSignerEngine.OutputJarSignatureRequest.class,//
+            com.android.apksig.DefaultApkSignerEngine.InspectJarEntryRequest.class,//
+            com.android.apksig.DefaultApkSignerEngine.Builder.class,//
+            com.android.apksig.DefaultApkSignerEngine.SignerConfig.class,//
+            //
+            com.android.apksig.Hints.class,//
+            com.android.apksig.Hints.ByteRange.class,//
+            //
+            com.android.apksig.internal.apk.AndroidBinXmlParser.class,//
+            com.android.apksig.internal.apk.AndroidBinXmlParser.XmlParserException.class,//
+            //
+            com.android.apksig.internal.apk.ApkSigningBlockUtils.class,//
+            com.android.apksig.internal.apk.ApkSigningBlockUtils.NoSupportedSignaturesException.class,//
+            com.android.apksig.internal.apk.ApkSigningBlockUtils.SignerConfig.class,//
+            com.android.apksig.internal.apk.ApkSigningBlockUtils.Result.class,//
+            com.android.apksig.internal.apk.ApkSigningBlockUtils.SignatureNotFoundException.class,//
+            //
+            com.android.apksig.internal.apk.ContentDigestAlgorithm.class,//
+            com.android.apksig.internal.apk.SignatureAlgorithm.class,//
+            com.android.apksig.internal.apk.SignatureInfo.class,//
+            com.android.apksig.internal.apk.v1.DigestAlgorithm.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeSigner.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeSigner.OutputManifestFile.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeSigner.SignerConfig.class,//
+            //
+            com.android.apksig.internal.apk.v1.V1SchemeVerifier.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeVerifier.ObjectIdentifierChoice.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeVerifier.OctetStringChoice.class,//
+            com.android.apksig.internal.apk.v1.V1SchemeVerifier.Result.class,//
+            //
+            com.android.apksig.internal.apk.v2.V2SchemeSigner.class,//
+            com.android.apksig.internal.apk.v2.V2SchemeVerifier.class,//
+            com.android.apksig.internal.apk.v3.V3SchemeSigner.class,//
+            com.android.apksig.internal.apk.v3.V3SchemeVerifier.class,//
+            com.android.apksig.internal.apk.v3.V3SigningCertificateLineage.class,//
+            com.android.apksig.internal.apk.v3.V3SigningCertificateLineage.SigningCertificateNode.class,//
+            //
+            com.android.apksig.internal.asn1.Asn1BerParser.class,//
+            com.android.apksig.internal.asn1.Asn1Class.class,//
+            com.android.apksig.internal.asn1.Asn1DecodingException.class,//
+            com.android.apksig.internal.asn1.Asn1DerEncoder.class,//
+            com.android.apksig.internal.asn1.Asn1EncodingException.class,//
+            com.android.apksig.internal.asn1.Asn1Field.class,//
+            com.android.apksig.internal.asn1.Asn1OpaqueObject.class,//
+            com.android.apksig.internal.asn1.Asn1TagClass.class,//
+            com.android.apksig.internal.asn1.Asn1Tagging.class,//
+            com.android.apksig.internal.asn1.Asn1Type.class,//
+            com.android.apksig.internal.asn1.ber.BerDataValue.class,//
+            com.android.apksig.internal.asn1.ber.BerDataValueFormatException.class,//
+            com.android.apksig.internal.asn1.ber.BerDataValueReader.class,//
+            com.android.apksig.internal.asn1.ber.BerEncoding.class,//
+            com.android.apksig.internal.asn1.ber.ByteBufferBerDataValueReader.class,//
+            com.android.apksig.internal.asn1.ber.InputStreamBerDataValueReader.class,//
+            com.android.apksig.internal.jar.ManifestParser.class,//
+            com.android.apksig.internal.jar.ManifestParser.Attribute.class,//
+            com.android.apksig.internal.jar.ManifestParser.Section.class,//
+            //
+            com.android.apksig.internal.jar.ManifestWriter.class,//
+            com.android.apksig.internal.jar.SignatureFileWriter.class,//
+            com.android.apksig.internal.pkcs7.AlgorithmIdentifier.class,//
+            com.android.apksig.internal.pkcs7.Attribute.class,//
+            com.android.apksig.internal.pkcs7.ContentInfo.class,//
+            com.android.apksig.internal.pkcs7.EncapsulatedContentInfo.class,//
+            com.android.apksig.internal.pkcs7.IssuerAndSerialNumber.class,//
+            com.android.apksig.internal.pkcs7.Pkcs7Constants.class,//
+            com.android.apksig.internal.pkcs7.Pkcs7DecodingException.class,//
+            com.android.apksig.internal.pkcs7.SignedData.class,//
+            com.android.apksig.internal.pkcs7.SignerIdentifier.class,//
+            com.android.apksig.internal.pkcs7.SignerInfo.class,//
+            com.android.apksig.internal.util.AndroidSdkVersion.class,//
+            com.android.apksig.internal.util.ByteArrayDataSink.class,//
+            com.android.apksig.internal.util.ByteBufferDataSource.class,//
+            com.android.apksig.internal.util.ByteBufferSink.class,//
+            com.android.apksig.internal.util.ByteBufferUtils.class,//
+            com.android.apksig.internal.util.ByteStreams.class,//
+            com.android.apksig.internal.util.ChainedDataSource.class,//
+            com.android.apksig.internal.util.DelegatingX509Certificate.class,//
+            com.android.apksig.internal.util.GuaranteedEncodedFormX509Certificate.class,//
+            com.android.apksig.internal.util.InclusiveIntRange.class,//
+            com.android.apksig.internal.util.MessageDigestSink.class,//
+            com.android.apksig.internal.util.OutputStreamDataSink.class,//
+            com.android.apksig.internal.util.Pair.class,//
+            com.android.apksig.internal.util.RandomAccessFileDataSink.class,//
+            com.android.apksig.internal.util.RandomAccessFileDataSource.class,//
+            com.android.apksig.internal.util.TeeDataSink.class,//
+            com.android.apksig.internal.util.VerityTreeBuilder.class,//
+            com.android.apksig.internal.util.X509CertificateUtils.class,//
+            com.android.apksig.internal.x509.AttributeTypeAndValue.class,//
+            com.android.apksig.internal.x509.Certificate.class,//
+            com.android.apksig.internal.x509.Extension.class,//
+            com.android.apksig.internal.x509.Name.class,//
+            com.android.apksig.internal.x509.RelativeDistinguishedName.class,//
+            com.android.apksig.internal.x509.SubjectPublicKeyInfo.class,//
+            com.android.apksig.internal.x509.TBSCertificate.class,//
+            com.android.apksig.internal.x509.Time.class,//
+            com.android.apksig.internal.x509.Validity.class,//
+            com.android.apksig.internal.zip.CentralDirectoryRecord.class,//
+            com.android.apksig.internal.zip.EocdRecord.class,//
+            com.android.apksig.internal.zip.LocalFileRecord.class,//
+            com.android.apksig.internal.zip.ZipUtils.class,//
+            com.android.apksig.internal.zip.ZipUtils.DeflateResult.class,//
+            //
+            com.android.apksig.SigningCertificateLineage.class,//
+            com.android.apksig.SigningCertificateLineage.Builder.class,//
+            com.android.apksig.SigningCertificateLineage.SignerCapabilities.class,//
+            com.android.apksig.SigningCertificateLineage.SignerConfig.class,//
+            //
+            com.android.apksig.util.DataSink.class,//
+            com.android.apksig.util.DataSinks.class,//
+            com.android.apksig.util.DataSource.class,//
+            com.android.apksig.util.DataSources.class,//
+            com.android.apksig.util.ReadableDataSink.class,//
+            com.android.apksig.zip.ZipFormatException.class//
     };
 }

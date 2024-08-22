@@ -14,13 +14,14 @@ android {
         consumerProguardFiles 'proguard-apkvalidator.pro'
     }
 
-    sourceSets {
-        main {
-            java {
-                srcDirs('src/main/java', '../apksig/src/main/java')
-            }
-        }
-    }
+    //use old apksig for a while
+//    sourceSets {
+//        main {
+//            java {
+//                srcDirs('src/main/java', '../apksig/src/main/java')
+//            }
+//        }
+//    }
     buildTypes {
         configureEach {
             minifyEnabled false
@@ -33,4 +34,5 @@ android {
 }
 
 dependencies {
+    implementation 'com.github.ichurkin:apksig-android:1.0.0'
 }
