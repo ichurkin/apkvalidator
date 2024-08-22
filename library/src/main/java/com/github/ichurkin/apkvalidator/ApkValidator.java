@@ -238,10 +238,10 @@ public abstract class ApkValidator {
     }
 
     //1 check apk version
-    protected boolean checkFileVersionByPackageInfo(Context context, File apkFile) {
-        PackageInfo info = context.getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-        return info.versionCode != getVersionCode();
-    }
+//    protected boolean checkFileVersionByPackageInfo(Context context, File apkFile) {
+//        PackageInfo info = context.getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+//        return info.versionCode != getVersionCode(context);
+//    }
 
     protected abstract int getVersionCode(Context context);
 
