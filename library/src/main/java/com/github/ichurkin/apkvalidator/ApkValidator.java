@@ -29,7 +29,7 @@ import android.widget.Toast;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
-import java.lang.ref.WeakReference;
+import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -52,6 +52,7 @@ public abstract class ApkValidator {
     private static final String CLOSE = "ic_close";
 
     protected static long sCheckedTime;
+    protected static volatile long sCheckStartedTime;
 
     protected final boolean mDoDebug;
     protected final boolean mIsEmulatorAllowed;
@@ -112,20 +113,36 @@ public abstract class ApkValidator {
         if (context == null) {
             return;
         }
+        final Context appContext = context.getApplicationContext();
+        if (appContext == null) {
+            return;
+        }
         long now = System.currentTimeMillis();
         //limit execution calls to once in an hour
         //TODO: sync and lock
-        if (sCheckedTime + DateUtils.HOUR_IN_MILLIS < now) {
-            Log.i(getTag(), "+");
-            IntegrityChecker integrityChecker = new IntegrityChecker(context, ApkValidator.this);
-            integrityChecker.execute();
+        if (sCheckedTime + DateUtils.HOUR_IN_MILLIS < now && sCheckStartedTime + DateUtils.MINUTE_IN_MILLIS < now) {
+            sCheckStartedTime = now;
+            info(appContext, "+");
+            final long randomDelay = new Random().nextInt(10000);
+            SoftReference<Context> ref = new SoftReference<>(appContext);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                final Context context1 = ref.get();
+                if (context1 != null) {
+                    IntegrityChecker integrityChecker = new IntegrityChecker(ref, ApkValidator.this);
+                    integrityChecker.execute();
+                }
+            }, randomDelay);
         } else {
-            log(context, "-");
+            log(appContext, "-");
         }
     }
 
-    protected void validate(final Context context) {
-        log(context, "call b");
+    protected void validate(Context context) {
+        log(context, "call validate");
+        context = context.getApplicationContext();
+        if (context == null) {
+            return;
+        }
 
         if (!mIsEmulatorAllowed) {
             log(context, "call emulator check");
@@ -152,7 +169,7 @@ public abstract class ApkValidator {
             exit(context);
             return;
         }
-        Log.i(getTag(), getTag());
+        log(context, getTag());
 
         log(context, "signature is fine, no termination");
         //update time only if validation was ok
@@ -192,43 +209,46 @@ public abstract class ApkValidator {
     }
 
     protected boolean isSignatureOk(final Context context) {
-        //do not check signature in debug mode, android studio fails to generate MANIFEST.MF now
-        if (mIsDebugModeAllowed && mIsEmulatorAllowed) {
-            log(context, "No signature check because no META-INF/MANIFEST.MF generated");
-            return true;
-        }
         try {
+            //1 step find our certificate in package manager
             X509Certificate pmCert = findCertificateByPackageManager(context);
             if (pmCert == null) {
-                return false;
+                info(context, "pm");
+                return false; // no cert with our thumbprint, something is wrong
             }
             String pmCertThumb = getThumbPrint(pmCert);
-            log(context, "pmCertThumb:" + pmCertThumb);
-            //verification  is here
-            final String apkPath = context.getApplicationContext().getPackageCodePath();
-            final String apkPath2 = context.getPackageManager().getApplicationInfo(getApkPackage(context), 0).publicSourceDir;
-            boolean different = apkPath2 != null && !apkPath2.equals(apkPath);
+            log(context, "pm cert:" + pmCertThumb);
+            String apkPath = normalizeApkPath(context, context.getPackageCodePath());
+            if (apkPath == null) {
+                info(context, "p1");
+                return false;
+            }
+            log(context, "p1 is fine");
+            String apkPath2 = normalizeApkPath(context, context.getPackageManager().getApplicationInfo(getApkPackage(context), 0).publicSourceDir);
+            if (apkPath2 == null) {
+                info(context, "p2");
+                return false;
+            }
+            log(context, "p2 is fine");
+            if (!apkPath.equals(apkPath2)) {
+                info(context, "p3");
+                return false;
+            }
+            log(context, "paths are equal");
             final int versionCode = getVersionCode(context);
-            if (versionCode != getApkVersionCode(context, apkPath)) {
+            if (versionCode != getApkVersionCodeByPackageManager(context, apkPath)) {
                 info(context, "v1");
                 return false;
             }
-            if (different && versionCode != getApkVersionCode(context, apkPath2)) {
+            log(context, "v1 is fine");
+            if (versionCode != getApkVersionCode(context, apkPath)) {
                 info(context, "v2");
                 return false;
             }
-            File apkFile = new File(apkPath);
-            if (!checkFileCert(context, pmCertThumb, apkFile)) {
-                info(context, "s1");
+            log(context, "v2 is fine");
+            if (!checkFileCert(context, pmCertThumb, new File(apkPath))) {
+                info(context, "s");
                 return false;
-            }
-            if (different) {
-                File apkFile2 = new File(apkPath2);
-                log(context, "apkFile and apkFile2 are different!");
-                if (!checkFileCert(context, pmCertThumb, apkFile2)) {
-                    info(context, "s2");
-                    return false;
-                }
             }
             return true;
         } catch (Throwable e) {
@@ -237,11 +257,29 @@ public abstract class ApkValidator {
         return false;
     }
 
+    private String normalizeApkPath(Context context, String path) {
+        File file = new File(path);
+        if (!file.exists()) {
+            return null;
+        }
+        try {
+            path = file.getCanonicalPath();
+        } catch (Throwable e) {
+            error(context, e);
+        }
+        return (path.startsWith("/data/app/") && path.contains(getApkPackage(context)) ? path : null);
+    }
+
     //1 check apk version
-//    protected boolean checkFileVersionByPackageInfo(Context context, File apkFile) {
-//        PackageInfo info = context.getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-//        return info.versionCode != getVersionCode(context);
-//    }
+    protected int getApkVersionCodeByPackageManager(Context context, String apkPath) {
+        final PackageInfo pInfo = context.getPackageManager().getPackageArchiveInfo(apkPath, 0);
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return (int) pInfo.getLongVersionCode();
+        } else {
+            //noinspection deprecation
+            return pInfo.versionCode;
+        }
+    }
 
     protected abstract int getVersionCode(Context context);
 
@@ -253,13 +291,13 @@ public abstract class ApkValidator {
             return false;
         }
         String apkCertThumb = getThumbPrint(apkCert);
-        log(context, "apkCertThumb:" + apkCertThumb);
+        log(context, "apk cert thumb:" + apkCertThumb);
         //compare certs
         return pmCertThumb.equals(apkCertThumb);
     }
 
     protected X509Certificate findCertificateByPackageManager(final Context context) {
-        log(context, "finding certificate...");
+        log(context, "pm cert search");
         try {
             @SuppressLint("PackageManagerGetSignatures") final Signature[] signatures = context.getPackageManager().getPackageInfo(context.getPackageName(),
                     PackageManager.GET_SIGNATURES).signatures;
@@ -272,48 +310,48 @@ public abstract class ApkValidator {
                     final X509Certificate c = (X509Certificate) certificateFactory.generateCertificate(
                             new ByteArrayInputStream(signature.toByteArray()));
                     final String thumbPrint = getThumbPrint(c);
-                    log(context, "Cer/sig processing... " + thumbPrint);
+                    log(context, "pm cert processing... " + thumbPrint);
                     if (getKeyHash(context).equals(thumbPrint)) {
-                        log(context, "Cer/sig found");
+                        log(context, "pm cert found");
                         return c;
                     }
                 } catch (Throwable e1) {
-                    log(context, "cer error" + e1.getMessage());
+                    log(context, "pm cert error" + e1.getMessage());
                     error(context, e1);
                 }
             }
         } catch (final Throwable ex) {
-            log(context, "cer factory error" + ex.getMessage());
+            log(context, "pm cert factory error" + ex.getMessage());
             error(context, ex);
         }
-        log(context, "Sig is not ok, cert is not found");
-        error(context, "c is not found");
+        log(context, "pm cert is not found");
+        error(context, "c");
         return null;
     }
 
     protected X509Certificate findCertificateByFile(Context context, File file) {
-        log(context, "findCertificateByFile file=" + file.getAbsolutePath());
+        log(context, "file cert test " + file.getAbsolutePath());
         try {
             com.android.apksig.ApkVerifier.Builder builder = new com.android.apksig.ApkVerifier.Builder(file);
-            log(context, "findCertificateByFile verify...");
+            log(context, "file cert verify");
             com.android.apksig.ApkVerifier.Result result = builder.build().verify();
             if (!result.isVerified()) {
-                error(context, "Verification failed");
+                error(context, "fv failed");
                 if (mDoDebug) {
                     List<com.android.apksig.ApkVerifier.IssueWithParams> errors = result.getErrors();
-                    log(context, "Verification failed, errors:" + errors.size());
+                    log(context, "file cert verification failed, errors:" + errors.size());
                     for (com.android.apksig.ApkVerifier.IssueWithParams issue : errors) {
-                        log(context, "findCertificateByFile error:" + issue.toString());
+                        log(context, "file cert error:" + issue.toString());
                     }
                     List<com.android.apksig.ApkVerifier.IssueWithParams> warnings = result.getWarnings();
-                    log(context, "Verification failed, warnings:" + warnings.size());
+                    log(context, "file cert verification failed, warnings:" + warnings.size());
                     for (com.android.apksig.ApkVerifier.IssueWithParams warn : warnings) {
-                        log(context, "findCertificateByFile warn:" + warn.toString());
+                        log(context, "file cert warn:" + warn.toString());
                     }
                 }
                 return null;
             }
-            log(context, "findCertificateByFile verification successful");
+            log(context, "file cert verification successful");
 
             List<X509Certificate> signerCertificates = result.getSignerCertificates();
             return signerCertificates.get(0);
@@ -371,7 +409,7 @@ public abstract class ApkValidator {
         if (activity == null || activity.isFinishing()) {
             return;
         }
-        log(activity, "Title:" + title + ", text: " + text);
+        log(activity, "title:" + title + ", text: " + text);
         //otherwise bug - empty title and message
         final AlertDialog.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -489,16 +527,6 @@ public abstract class ApkValidator {
         Log.e(getTag(), msg);
     }
 
-    protected void onBeforeValidation() {
-        //random pause
-        try {
-            final long someTime = new Random().nextInt(10000);
-            Thread.sleep(someTime);
-        } catch (final InterruptedException e) {
-            // nothing
-        }
-    }
-
     protected static String getThumbPrint(final X509Certificate cert) throws NoSuchAlgorithmException,
             CertificateEncodingException {
         final MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -520,20 +548,18 @@ public abstract class ApkValidator {
 
     private static final class IntegrityChecker extends AsyncTask<Void, Void, Boolean> {
 
-        private final WeakReference<Context> _contextRef;
+        private final SoftReference<Context> _contextRef;
 
         private final ApkValidator _validator;
 
-        IntegrityChecker(final Context context, ApkValidator validator) {
-            _contextRef = new WeakReference<>(context);
+        IntegrityChecker(SoftReference<Context> contextRef, ApkValidator validator) {
+            _contextRef = contextRef;
             _validator = validator;
         }
 
         @Override
         protected Boolean doInBackground(final Void... params) {
             final Context context = _contextRef.get();
-            _validator.log(context, "doInBackground....");
-            _validator.onBeforeValidation();
             _validator.log(context, "validating....");
             try {
                 if (context != null) {
