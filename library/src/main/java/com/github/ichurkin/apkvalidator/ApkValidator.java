@@ -26,8 +26,10 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
@@ -38,6 +40,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 public abstract class ApkValidator {
@@ -119,25 +122,38 @@ public abstract class ApkValidator {
         }
         long now = System.currentTimeMillis();
         //limit execution calls to once in an hour
-        //TODO: sync and lock
         if (sCheckedTime + DateUtils.HOUR_IN_MILLIS < now && sCheckStartedTime + DateUtils.MINUTE_IN_MILLIS < now) {
             sCheckStartedTime = now;
-            info(appContext, "+");
-            final long randomDelay = new Random().nextInt(10000);
+            info(appContext, "connecting");
+            final long randomDelay = new Random().nextInt(5000);
             SoftReference<Context> ref = new SoftReference<>(appContext);
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                final Context context1 = ref.get();
-                if (context1 != null) {
-                    IntegrityChecker integrityChecker = new IntegrityChecker(ref, ApkValidator.this);
-                    integrityChecker.execute();
-                }
-            }, randomDelay);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> delayedValidation(ref), randomDelay);
         } else {
             log(appContext, "-");
         }
     }
 
-    protected void validate(Context context) {
+    protected void delayedValidation(SoftReference<Context> ref) {
+        final Context context = ref.get();
+        if (context != null) {
+            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> safeAsyncValidation(ref));
+        }
+    }
+
+    protected void safeAsyncValidation(SoftReference<Context> ref) {
+        final Context context = ref.get();
+        if (context != null) {
+            log(context, "validating....");
+            try {
+                validation(context);
+            } catch (final Throwable e) {
+                log(context, e.getMessage());
+                exit(context);
+            }
+        }
+    }
+
+    protected void validation(Context context) {
         log(context, "call validate");
         context = context.getApplicationContext();
         if (context == null) {
@@ -162,6 +178,29 @@ public abstract class ApkValidator {
                 return;
             }
         }
+        //check application classes
+        Application application = getApplication(context);
+        if (application != null) {
+            Class<? extends Application> appClass = application.getClass();
+            if (!getAppClassName().equals(appClass.getName())) {
+                info(context, "a1");
+                exit(context, false);
+                return;
+            }
+            if (!getAppParentClass().equals(appClass.getSuperclass())) {
+                info(context, "a2");
+                exit(context, false);
+                return;
+            }
+        }
+        //check hooks library
+        //System.loadLibrary();
+        log(context, "call libs check");
+        if (hasBadLib(context)) {
+            log(context, "failed");
+            exit(context);
+            return;
+        }
 
         log(context, "call signature check");
         if (!isSignatureOk(context)) {
@@ -169,8 +208,7 @@ public abstract class ApkValidator {
             exit(context);
             return;
         }
-        log(context, getTag());
-
+        info(context, "connection is ok");
         log(context, "signature is fine, no termination");
         //update time only if validation was ok
         sCheckedTime = System.currentTimeMillis();
@@ -181,6 +219,7 @@ public abstract class ApkValidator {
     }
 
     protected void exit(Context context, boolean isEmulator) {
+        info(context, "-");
         Activity a = getTopActivity(context);
         if (a != null) {
             if (isEmulator) {
@@ -198,6 +237,37 @@ public abstract class ApkValidator {
             //exit with delay
             exit();
         }
+    }
+
+    protected boolean hasBadLib(Context context) {
+        try {
+            String mapsFile = "/proc/" + android.os.Process.myPid() + "/maps";
+            BufferedReader reader = new BufferedReader(new FileReader(mapsFile));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.endsWith(".so")) {
+                    int n = line.lastIndexOf(" ");
+                    String lib = line.substring(n + 1);
+                    log(context, lib);
+                    String lowLib = lib.toLowerCase(Locale.US);
+                    if (lowLib.contains("aturekil")) {
+                        info(context, "k1");
+                        return true;
+                    }
+                    if (lowLib.contains("signkill")) {
+                        info(context, "k2");
+                        return true;
+                    }
+                    if (lowLib.contains("apkkill")) {
+                        info(context, "k3");
+                        return true;
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            log(context, e.getMessage());
+        }
+        return false;
     }
 
     protected void exit() {
@@ -236,13 +306,17 @@ public abstract class ApkValidator {
             }
             log(context, "paths are equal");
             final int versionCode = getVersionCode(context);
-            if (versionCode != getApkVersionCodeByPackageManager(context, apkPath)) {
-                info(context, "v1");
+            final int apkVersionCodeByPackageManager = getApkVersionCodeByPackageManager(context, apkPath);
+            log(context, "v1 avc=" + apkVersionCodeByPackageManager);
+            if (versionCode != apkVersionCodeByPackageManager) {
+                info(context, "v1" + apkVersionCodeByPackageManager);
                 return false;
             }
             log(context, "v1 is fine");
-            if (versionCode != getApkVersionCode(context, apkPath)) {
-                info(context, "v2");
+            final int apkVersionCode = getApkVersionCode(context, apkPath);
+            log(context, "v2 avc=" + apkVersionCode);
+            if (versionCode != apkVersionCode) {
+                info(context, "v2" + apkVersionCode);
                 return false;
             }
             log(context, "v2 is fine");
@@ -257,7 +331,7 @@ public abstract class ApkValidator {
         return false;
     }
 
-    private String normalizeApkPath(Context context, String path) {
+    protected String normalizeApkPath(Context context, String path) {
         File file = new File(path);
         if (!file.exists()) {
             return null;
@@ -280,6 +354,10 @@ public abstract class ApkValidator {
             return pInfo.versionCode;
         }
     }
+
+    protected abstract String getAppClassName();
+
+    protected abstract Class<? extends Application> getAppParentClass();
 
     protected abstract int getVersionCode(Context context);
 
@@ -532,7 +610,6 @@ public abstract class ApkValidator {
         final MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(cert.getEncoded());
         return hexify(md.digest());
-
     }
 
     protected static String hexify(final byte[] bytes) {
@@ -546,52 +623,10 @@ public abstract class ApkValidator {
         return buf.toString();
     }
 
-    private static final class IntegrityChecker extends AsyncTask<Void, Void, Boolean> {
-
-        private final SoftReference<Context> _contextRef;
-
-        private final ApkValidator _validator;
-
-        IntegrityChecker(SoftReference<Context> contextRef, ApkValidator validator) {
-            _contextRef = contextRef;
-            _validator = validator;
-        }
-
-        @Override
-        protected Boolean doInBackground(final Void... params) {
-            final Context context = _contextRef.get();
-            _validator.log(context, "validating....");
-            try {
-                if (context != null) {
-                    _validator.validate(context);
-                    return true;
-                }
-                return false;
-            } catch (final Throwable e) {
-                _validator.log(context, e.getMessage());
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            if (!result) {
-                final Context context = _contextRef.get();
-                if (context != null) {
-                    _validator.exit(context);
-                } else {
-                    _validator.exit();
-                }
-            }
-        }
-    }
-
     /**
      * Make it public to be cached by the classloader while loading main class
      */
     public static Class<?>[] classes = new Class<?>[]{
-            IntegrityChecker.class,//
-
             com.android.apksig.apk.ApkFormatException.class,//
             com.android.apksig.apk.ApkSigningBlockNotFoundException.class,//
             com.android.apksig.apk.ApkUtils.class,//
