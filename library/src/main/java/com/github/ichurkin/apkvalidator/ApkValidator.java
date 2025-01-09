@@ -341,7 +341,22 @@ public abstract class ApkValidator {
         } catch (Throwable e) {
             error(context, e);
         }
-        return (path.startsWith("/data/app/") && path.contains(getApkPackage(context)) ? path : null);
+        if (path == null) {
+            return null;
+        }
+        @SuppressLint("SdCardPath")
+        boolean startCondition = path.startsWith("/data/app/")
+                || path.startsWith("/mnt/expand/")
+                || path.startsWith("/data/internal_app/")
+                || path.startsWith("/data/user/0/com.gbox.android/")
+                || path.startsWith("/data/data/com.gbox.android/");
+        if (startCondition) {
+            if (path.contains(getApkPackage(context))) {
+                return path;
+            }
+        }
+        info(context, path);
+        return null;
     }
 
     //1 check apk version
@@ -445,9 +460,12 @@ public abstract class ApkValidator {
             String gfp = System.getProperty("ro.hardware", "");
             boolean goldfish = gfp != null && gfp.contains("goldfish");
             String qemu = System.getProperty("ro.kernel.qemu", "");
-            boolean emu = qemu != null && qemu.length() > 0;
+            boolean emu = qemu != null && !qemu.isEmpty();
             String sdkProperty = System.getProperty("ro.product.model", "");
             boolean sdk = "sdk".equals(sdkProperty);
+            if (emu || goldfish || sdk) {
+                return true;
+            }
 
             String fingerprint = Build.FINGERPRINT.toLowerCase();
             String model = Build.MODEL.toLowerCase();
@@ -455,7 +473,7 @@ public abstract class ApkValidator {
             String brand = Build.BRAND.toLowerCase();
             String device = Build.DEVICE.toLowerCase();
             String product = Build.PRODUCT.toLowerCase();
-            boolean extraCheck = fingerprint.contains("generic")
+            return fingerprint.contains("generic")
                     || fingerprint.startsWith("unknown")
                     || model.contains("google_sdk")
                     || model.contains("emulator")
@@ -464,8 +482,6 @@ public abstract class ApkValidator {
                     || (brand.startsWith("generic") && device.startsWith("generic"))
                     || "google_sdk".equals(product)
                     || Build.HARDWARE.contains("goldfish");
-
-            return (emu || goldfish || sdk || extraCheck);
         } catch (Throwable e) {
             error(context, e);
             return false;
