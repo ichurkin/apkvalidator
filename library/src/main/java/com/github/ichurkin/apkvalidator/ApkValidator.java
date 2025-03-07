@@ -187,7 +187,8 @@ public abstract class ApkValidator {
                 exit(context, false);
                 return;
             }
-            if (!getAppParentClass().equals(appClass.getSuperclass())) {
+            Class<?> superclass = appClass.getSuperclass();
+            if (superclass == null || !getAppParentClassName().equals(superclass.getName())) {
                 info(context, "a2");
                 exit(context, false);
                 return;
@@ -372,7 +373,7 @@ public abstract class ApkValidator {
 
     protected abstract String getAppClassName();
 
-    protected abstract Class<? extends Application> getAppParentClass();
+    protected abstract String getAppParentClassName();
 
     protected abstract int getVersionCode(Context context);
 
@@ -428,26 +429,30 @@ public abstract class ApkValidator {
             com.android.apksig.ApkVerifier.Builder builder = new com.android.apksig.ApkVerifier.Builder(file);
             log(context, "file cert verify");
             com.android.apksig.ApkVerifier.Result result = builder.build().verify();
+            List<X509Certificate> signerCertificates = result.getSignerCertificates();
+            X509Certificate signerCertificate = (signerCertificates == null || signerCertificates.isEmpty() ? null : signerCertificates.get(0));
             if (!result.isVerified()) {
-                error(context, "fv failed");
+                String tp = "";
+                if (signerCertificate != null) {
+                    tp = " " + getThumbPrint(signerCertificates.get(0));
+                }
+                error(context, "fv failed" + tp);
                 if (mDoDebug) {
                     List<com.android.apksig.ApkVerifier.IssueWithParams> errors = result.getErrors();
                     log(context, "file cert verification failed, errors:" + errors.size());
                     for (com.android.apksig.ApkVerifier.IssueWithParams issue : errors) {
-                        log(context, "file cert error:" + issue.toString());
+                        error(context, String.valueOf(issue));
                     }
                     List<com.android.apksig.ApkVerifier.IssueWithParams> warnings = result.getWarnings();
                     log(context, "file cert verification failed, warnings:" + warnings.size());
                     for (com.android.apksig.ApkVerifier.IssueWithParams warn : warnings) {
-                        log(context, "file cert warn:" + warn.toString());
+                        log(context, "file cert warn:" + warn);
                     }
                 }
                 return null;
             }
             log(context, "file cert verification successful");
-
-            List<X509Certificate> signerCertificates = result.getSignerCertificates();
-            return signerCertificates.get(0);
+            return signerCertificate;
         } catch (Throwable e) {
             error(context, e);
         }
