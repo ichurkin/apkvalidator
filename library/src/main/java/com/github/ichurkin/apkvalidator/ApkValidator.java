@@ -436,17 +436,20 @@ public abstract class ApkValidator {
                 if (signerCertificate != null) {
                     tp = " " + getThumbPrint(signerCertificates.get(0));
                 }
-                error(context, "fv failed" + tp);
-                if (mDoDebug) {
-                    List<com.android.apksig.ApkVerifier.IssueWithParams> errors = result.getErrors();
-                    log(context, "file cert verification failed, errors:" + errors.size());
+                List<com.android.apksig.ApkVerifier.IssueWithParams> errors = result.getErrors();
+                error(context, "fv failed" + tp + " " + (errors == null ? "-" : "" + errors.size()));
+                if (errors != null) {
                     for (com.android.apksig.ApkVerifier.IssueWithParams issue : errors) {
                         error(context, String.valueOf(issue));
                     }
+                }
+                if (mDoDebug) {
                     List<com.android.apksig.ApkVerifier.IssueWithParams> warnings = result.getWarnings();
-                    log(context, "file cert verification failed, warnings:" + warnings.size());
-                    for (com.android.apksig.ApkVerifier.IssueWithParams warn : warnings) {
-                        log(context, "file cert warn:" + warn);
+                    log(context, "file cert verification failed, warnings:" + (warnings == null ? "-" : "" + warnings.size()));
+                    if (warnings != null) {
+                        for (com.android.apksig.ApkVerifier.IssueWithParams warn : warnings) {
+                            log(context, "file cert warn:" + warn);
+                        }
                     }
                 }
                 return null;
