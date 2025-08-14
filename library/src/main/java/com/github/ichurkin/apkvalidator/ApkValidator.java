@@ -247,10 +247,11 @@ public abstract class ApkValidator {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.endsWith(".so")) {
-                    int n = line.lastIndexOf(" ");
-                    String lib = line.substring(n + 1);
-                    log(context, lib);
-                    String lowLib = lib.toLowerCase(Locale.US);
+                    final String libPath = getStringAfter(line, ' ');
+                    final String libName = getStringAfter(libPath, '/');
+                    //log(context, libPath + " (" + libName + ")");
+                    log(context, libPath);
+                    String lowLib = libName.toLowerCase(Locale.US);
                     if (lowLib.contains("aturekil")) {
                         info(context, "k1");
                         return true;
@@ -263,12 +264,38 @@ public abstract class ApkValidator {
                         info(context, "k3");
                         return true;
                     }
+                    if (libName.startsWith("libMod.")) {
+                        info(context, "k4");
+                        return true;
+                    }
+                    if (libName.startsWith("libNnn.")) {
+                        info(context, "k5");
+                        return true;
+                    }
                 }
             }
         } catch (Throwable e) {
             log(context, e.getMessage());
         }
         return false;
+    }
+
+    private String getStringAfter(String line, char separator) {
+        String libPath;
+        int n = line.lastIndexOf(separator);
+        if (n >= 0 && n < line.length() - 1) {
+            libPath = line.substring(n + 1);
+        } else {
+            libPath = line;
+        }
+        n = libPath.lastIndexOf("/");
+        String libName;
+        if (n >= 0 && n < libPath.length() - 1) {
+            libName = libPath.substring(n + 1);
+        } else {
+            libName = libPath;
+        }
+        return libPath;
     }
 
     protected void exit() {
