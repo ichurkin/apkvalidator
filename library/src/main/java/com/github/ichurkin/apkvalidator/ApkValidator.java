@@ -165,6 +165,7 @@ public abstract class ApkValidator {
             if (isEmulator(context)) {
                 //emulator
                 log(context, "emulator, exiting");
+                info(context, "e");
                 exit(context, true);
                 return;
             }
@@ -174,6 +175,7 @@ public abstract class ApkValidator {
             log(context, "call debug check");
             if (isDebuggable(context)) {
                 log(context, "debug, exiting");
+                info(context, "d");
                 exit(context, true);
                 return;
             }
@@ -539,9 +541,10 @@ public abstract class ApkValidator {
             return;
         }
         log(activity, "title:" + title + ", text: " + text);
-        //otherwise bug - empty title and message
+        //TODO: later androidx dialog alert to use with theme?
         final AlertDialog.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            //otherwise bug - empty title and message
             builder = new AlertDialog.Builder(activity, android.R.style.Theme_Material_Light_Dialog_Alert);
         } else {
             builder = new AlertDialog.Builder(activity);
