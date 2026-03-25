@@ -511,7 +511,7 @@ public abstract class ApkValidator {
             String device = Build.DEVICE.toLowerCase();
             String product = Build.PRODUCT.toLowerCase();
             return fingerprint.contains("generic")
-                    || fingerprint.startsWith("unknown")
+                    || (fingerprint.startsWith("unknown") && !"huawei".equals(manufacturer) && !"honor".equals(manufacturer) && !"huawei".equals(brand) && !"honor".equals(brand))
                     || model.contains("google_sdk")
                     || model.contains("emulator")
                     || model.contains("android sdk built for x86")
