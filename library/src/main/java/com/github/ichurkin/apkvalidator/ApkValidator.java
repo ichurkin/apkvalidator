@@ -243,9 +243,11 @@ public abstract class ApkValidator {
     }
 
     protected boolean hasBadLib(Context context) {
-        try {
-            String mapsFile = "/proc/" + android.os.Process.myPid() + "/maps";
-            BufferedReader reader = new BufferedReader(new FileReader(mapsFile));
+        String mapsFile = "/proc/" + android.os.Process.myPid() + "/maps";
+
+        try (FileReader fileReader = new FileReader(mapsFile);
+             BufferedReader reader = new BufferedReader(fileReader)) {
+
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.endsWith(".so")) {
